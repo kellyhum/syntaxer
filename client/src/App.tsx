@@ -21,13 +21,13 @@ export default function App() {
     const levels: ListCollection<string> = createListCollection({
         items: ["A1", "A2", "B1", "B2"],
     });
-    const [serverMsg, setServerMsg] = useState(""); // holds the msg value from backend (datatype: string)
+    const [randomWritingPrompt, setRandomWritingPrompt] = useState(""); // holds the msg value from backend (datatype: string)
 
     useEffect(() => {
         // only works if you start flask first -> otherwise will give network error
         fetch("http://127.0.0.1:5000/msg")
             .then((response) => response.text())
-            .then((data) => setServerMsg(data));
+            .then((data) => setRandomWritingPrompt(data));
     }, []); // empty array = run once
 
     return (
@@ -40,7 +40,7 @@ export default function App() {
             <form>
                 <Flex justifyContent="space-between">
                     <Text mt={15} mb={10}>
-                        Random paragraph writing prompt here
+                        A1: {randomWritingPrompt}
                     </Text>
 
                     <Flex alignItems="center" gap={5}>
@@ -71,8 +71,6 @@ export default function App() {
                 />
                 <Button type="submit">Submit</Button>
             </form>
-
-            <Box>{serverMsg}</Box>
         </Box>
     );
 }
