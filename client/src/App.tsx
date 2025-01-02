@@ -7,6 +7,7 @@ import {
     Button,
     createListCollection,
     ListCollection,
+    SelectValueChangeDetails,
 } from "@chakra-ui/react";
 import {
     SelectContent,
@@ -15,20 +16,35 @@ import {
     SelectTrigger,
     SelectValueText,
 } from "@/components/ui/select";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function App() {
     const levels: ListCollection<string> = createListCollection({
         items: ["A1", "A2", "B1", "B2"],
-    });
-    const [randomWritingPrompt, setRandomWritingPrompt] = useState(""); // holds the msg value from backend (datatype: string)
+    }); // for displaying the level options in the dropdown
+
+    const [randomWritingPrompt, setRandomWritingPrompt] = useState(""); // holds the random prompt value from backend
+    const [timerSecs, setTimerSecs] = useState(0);
+
+    const handleLvlChange = (details: SelectValueChangeDetails<string>) => {
+        fetch(`http://127.0.0.1:5000/getprompt/${details.value[0]}`)
+            .then((response) => response.text())
+            .then((data) => {
+                setRandomWritingPrompt(data);
+                setTimerSecs(0); // reset to 0 every time a new prompt is chosen
+            });
+    };
 
     useEffect(() => {
-        // only works if you start flask first -> otherwise will give network error
-        fetch("http://127.0.0.1:5000/msg")
-            .then((response) => response.text())
-            .then((data) => setRandomWritingPrompt(data));
-    }, []); // empty array = run once
+        // when a new prompt is chosen, count up (1s every 1s)
+        if (randomWritingPrompt != "") {
+            const interval = setInterval(() => {
+                setTimerSecs((prev) => prev + 1);
+            }, 1000); // 1000ms = 1s
+
+            return () => clearInterval(interval); // on unmount, stop currently running timer
+        }
+    }, [randomWritingPrompt]); // runs every time randomWritingPrompt changes
 
     return (
         <Box px={100} py={50} height="100%">
@@ -38,31 +54,35 @@ export default function App() {
             </Flex>
 
             <form>
-                <Flex justifyContent="space-between">
+                <Flex justifyContent="space-between" alignItems="center">
                     <Text mt={15} mb={10}>
-                        A1: {randomWritingPrompt}
+                        {randomWritingPrompt != ""
+                            ? randomWritingPrompt
+                            : "Select a level to get a writing prompt"}
                     </Text>
 
-                    <Flex alignItems="center" gap={5}>
-                        <Text>0:00 (timer)</Text>
-
-                        <SelectRoot collection={levels} width="12rem">
-                            <SelectTrigger>
-                                <SelectValueText placeholder="Select CEFR level" />
-                            </SelectTrigger>
-                            <SelectContent
-                                backgroundColor="white"
-                                _hover={{ bg: "white" }}
-                            >
-                                {levels.items.map((level) => (
-                                    <SelectItem item={level}>
-                                        {level}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </SelectRoot>
-                    </Flex>
+                    <SelectRoot
+                        collection={levels}
+                        width="12rem"
+                        onValueChange={handleLvlChange}
+                    >
+                        <SelectTrigger>
+                            <SelectValueText placeholder="Select CEFR level" />
+                        </SelectTrigger>
+                        <SelectContent
+                            backgroundColor="white"
+                            _hover={{ bg: "white" }}
+                        >
+                            {levels.items.map((level) => (
+                                <SelectItem key={level} item={level}>
+                                    {level}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </SelectRoot>
                 </Flex>
+
+                <Text>{timerSecs} seconds</Text>
 
                 <Textarea
                     name="userParagraph"
