@@ -6,9 +6,9 @@ from writingPrompts import writing_prompts
 app = Flask(__name__) # setup paths
 CORS(app) # enable cors on all routes
 
-@app.route('/msg')
-def getWritingPrompt():
-    return random.choice(writing_prompts['A1'])
+@app.route('/getprompt/<cefrLvl>') # dynamically route to diff cefr levels
+def getWritingPrompt(cefrLvl):
+    return random.choice(writing_prompts[cefrLvl])
 
 if __name__ == '__main__':
     app.run(debug = True)
