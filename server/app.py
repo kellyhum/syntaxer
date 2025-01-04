@@ -2,30 +2,20 @@ from flask import Flask, request
 from flask_cors import CORS
 import random
 from writingPrompts import writing_prompts
-from grammarChecker import splitInput, checkRules
+from grammarChecker import checkRules
 
 app = Flask(__name__) # setup paths
 CORS(app) # enable cors on all routes
 
-@app.route('/getprompt/<cefrLvl>') # dynamically route to diff cefr levels
+@app.route('/api/getprompt/<cefrLvl>') # dynamically route to diff cefr levels
 def getWritingPrompt(cefrLvl):
     return random.choice(writing_prompts[cefrLvl])
 
-@app.route('/grammarcheck', methods=['POST'])
+@app.route('/api/grammarcheck', methods=['POST'])
 def grammarCheck():
-    # workflow:
-    # get data
-    # split into words
-    # check against all rules in the level and below
-    # tag the error location and add error msg
-    # return error-ified paragraph
-
     data = request.get_json()
-    print(data)
 
-    checkRules(data)
-
-    return ''
+    return checkRules(data)
 
 
 if __name__ == '__main__':
