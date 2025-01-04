@@ -9,6 +9,7 @@ import {
     ListCollection,
     SelectValueChangeDetails,
     Icon,
+    Highlight,
 } from "@chakra-ui/react";
 import {
     SelectContent,
@@ -18,6 +19,16 @@ import {
     SelectValueText,
 } from "@/components/ui/select";
 import { Toaster, toaster } from "@/components/ui/toaster";
+import {
+    DialogBody,
+    DialogCloseTrigger,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogRoot,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { FaRegClock } from "react-icons/fa";
 import { useState, useEffect } from "react";
 
@@ -29,14 +40,15 @@ export default function App() {
     const [randomWritingPrompt, setRandomWritingPrompt] = useState(""); // holds the random prompt value from backend
     const [timerSecs, setTimerSecs] = useState(0);
     const [currParagraph, setCurrParagraph] = useState("");
+    const [errorArray, setErrorArray] = useState([]);
+    const [inputtedParagraph, setInputtedParagraph] = useState("");
+    const [responseReceived, setResponseReceived] = useState(false);
 
     const handleLvlChange = async (
         details: SelectValueChangeDetails<string>
     ) => {
         try {
-            const response = await fetch(
-                `http://127.0.0.1:5000/getprompt/${details.value[0]}`
-            );
+            const response = await fetch(`/api/getprompt/${details.value[0]}`);
             const data = await response.text();
 
             setRandomWritingPrompt(data);
@@ -56,20 +68,30 @@ export default function App() {
         event: React.FormEvent<HTMLFormElement>
     ) => {
         event.preventDefault();
-        const response = await fetch("http://127.0.0.1:5000/grammarcheck", {
+        setCurrParagraph(""); // reset the form to an empty string
+
+        // toaster.loading({
+        //     title: "Submitting...",
+        // });
+
+        const response = await fetch("/api/grammarcheck", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(currParagraph),
         });
 
         if (response.ok) {
+            const responseData = await response.json();
+            setErrorArray(responseData["errors"]);
+            setInputtedParagraph(responseData["originalParagraph"]); // must return the inputted paragraph b/c curr paragraph = '' after submission
+
             toaster.success({
                 title: "Paragraph successfully submitted!",
                 description: "Awaiting results...",
             });
-        }
 
-        setCurrParagraph(""); // reset the form to an empty string
+            setResponseReceived(true);
+        }
     };
 
     useEffect(() => {
@@ -85,6 +107,36 @@ export default function App() {
 
     return (
         <Box px={100} py={50} height="100%" width="75vw" margin="auto">
+            {responseReceived && (
+                <DialogRoot motionPreset="slide-in-bottom">
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            Show results
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent color="#fff">
+                        <DialogHeader>
+                            <DialogTitle>
+                                Your paragraph, corrected:
+                            </DialogTitle>
+                        </DialogHeader>
+                        <DialogBody>
+                            <Highlight
+                                query={errorArray}
+                                styles={{ px: "0.5", bg: "teal.muted" }}
+                            >
+                                {inputtedParagraph}
+                            </Highlight>
+                        </DialogBody>
+                        <DialogFooter>
+                            <DialogTrigger asChild>
+                                <Button>Done</Button>
+                            </DialogTrigger>
+                        </DialogFooter>
+                    </DialogContent>
+                </DialogRoot>
+            )}
+
             <Toaster />
 
             <Flex justifyContent="center">
