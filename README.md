@@ -4,3 +4,6 @@ a chinese grammar checker where...
 - the app checks the grammar for any errors
 - returns a highlighted paragraph with the errors, if any
 
+tech stack
+- backend: flask
+- frontend: typescript react
