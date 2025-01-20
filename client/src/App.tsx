@@ -21,7 +21,6 @@ import {
 import { Toaster, toaster } from "@/components/ui/toaster";
 import {
     DialogBody,
-    DialogCloseTrigger,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -30,7 +29,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { FaRegClock } from "react-icons/fa";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function App() {
     const levels: ListCollection<string> = createListCollection({
@@ -43,6 +42,18 @@ export default function App() {
     const [errorArray, setErrorArray] = useState([]);
     const [inputtedParagraph, setInputtedParagraph] = useState("");
     const [responseReceived, setResponseReceived] = useState(false);
+    const [wordCount, setWordCount] = useState(0);
+
+    let stoppedTimer = timerSecs;
+
+    const handleChangeInTextArea = (
+        event: React.ChangeEvent<HTMLTextAreaElement>
+    ) => {
+        setCurrParagraph(event.target.value);
+
+        let calcWordCount = event.target.value.split("").length; // !!! this would only work for Chinese b/c characters don't have spaces in between
+        setWordCount(calcWordCount);
+    };
 
     const handleLvlChange = async (
         details: SelectValueChangeDetails<string>
@@ -70,14 +81,19 @@ export default function App() {
         event.preventDefault();
         setCurrParagraph(""); // reset the form to an empty string
 
-        // toaster.loading({
-        //     title: "Submitting...",
-        // });
+        // clearInterval(); // reset the timer to 0
+
+        toaster.loading({
+            title: "Submitting...",
+        });
 
         const response = await fetch("/api/grammarcheck", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(currParagraph),
+            body: JSON.stringify({
+                paragraph: currParagraph,
+                timer: stoppedTimer,
+            }),
         });
 
         if (response.ok) {
@@ -140,7 +156,9 @@ export default function App() {
             <Toaster />
 
             <Flex justifyContent="center">
-                <Heading mb={10}>language paragraph practice tool</Heading>
+                <Heading mb={10} fontWeight="bold">
+                    language paragraph practice tool
+                </Heading>
                 {/* <CustomButton title="Login" /> */}
             </Flex>
 
@@ -155,6 +173,7 @@ export default function App() {
                         <SelectValueText placeholder="Select CEFR level" />
                     </SelectTrigger>
                     <SelectContent
+                        borderColor="gray.300"
                         backgroundColor="white"
                         _hover={{ bg: "white" }}
                     >
@@ -167,49 +186,57 @@ export default function App() {
                 </SelectRoot>
             </Flex>
 
-            <Text fontWeight="bold">
-                {randomWritingPrompt != ""
-                    ? randomWritingPrompt
-                    : "Writing prompt will appear here"}
-            </Text>
+            <Box
+                borderWidth="1px"
+                borderStyle="solid"
+                borderColor="gray.300"
+                borderRadius={6}
+                p={5}
+                height="65vh"
+            >
+                <Text fontWeight="bold">
+                    {randomWritingPrompt != ""
+                        ? randomWritingPrompt
+                        : "Writing prompt will appear here"}
+                </Text>
 
-            <Text fontSize={"smaller"}>
-                Develop a clear argument with evidence. Use proper sentence
-                structures and vocabulary.
-            </Text>
+                <Text fontSize={"smaller"}>
+                    Develop a clear argument with evidence. Use proper sentence
+                    structures and vocabulary. Required: 200 words
+                </Text>
 
-            <Flex justifyContent="space-between" mb={5} fontSize={"smaller"}>
-                <Text>Required: 200 words</Text>
+                <form onSubmit={handleFormSubmit} style={{ height: "50%" }}>
+                    <label>
+                        Your response:
+                        <Textarea
+                            name="userParagraph"
+                            placeholder="Start writing..."
+                            value={currParagraph}
+                            onChange={(event) => handleChangeInTextArea(event)}
+                            height="100%"
+                            borderColor="gray.300"
+                        />
+                    </label>
 
-                <Flex gap={3}>
-                    <Text>Words: 4</Text>
-                    <Text>
-                        <Icon fontSize="20px">
-                            <FaRegClock />
-                        </Icon>
-                        {timerSecs}
-                    </Text>
-                </Flex>
-            </Flex>
+                    <Flex justifyContent="space-between">
+                        <Flex mb={5} fontSize={"smaller"} gap={3}>
+                            <Flex gap={3}>
+                                <Text>Words: {wordCount}</Text>
+                                <Text>
+                                    <Icon fontSize="20px">
+                                        <FaRegClock />
+                                    </Icon>
+                                    {timerSecs} seconds
+                                </Text>
+                            </Flex>
+                        </Flex>
 
-            <form onSubmit={handleFormSubmit}>
-                <label>
-                    Your response:
-                    <Textarea
-                        name="userParagraph"
-                        placeholder="Start writing..."
-                        value={currParagraph}
-                        onChange={(event) =>
-                            setCurrParagraph(event.target.value)
-                        }
-                        height="100%"
-                    />
-                </label>
-
-                <Button bg="#000" color="#fff" type="submit">
-                    Submit
-                </Button>
-            </form>
+                        <Button bg="#000" color="#fff" type="submit">
+                            Submit
+                        </Button>
+                    </Flex>
+                </form>
+            </Box>
         </Box>
     );
 }
